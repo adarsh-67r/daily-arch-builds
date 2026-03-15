@@ -40,6 +40,17 @@ step() {
 }
 
 build() {
+  step "Validating prerequisites..." "
+    if ! command -v pacman &>/dev/null; then
+      echo 'pacman not found — this script must run on Arch Linux' >&2
+      exit 1
+    fi
+  "
+  step "Cleaning up previous build artifacts..." "
+    [ -d /tmp/isobuild ] && rm -rf /tmp/isobuild
+    [ -d work ] && rm -rf work/
+    true
+  "
   step "Creating build directory..." "mkdir -p /tmp/isobuild/airootfs/root"
   step "Adding notes to .zprofile file..." "
     cat <<-EOL >>/tmp/isobuild/airootfs/root/.zprofile
@@ -53,6 +64,16 @@ build() {
     EOL
   "
   step "Updating packages and installing archiso..." "pacman -Syu --noconfirm archiso"
+  step "Validating archiso installation..." "
+    if ! command -v mkarchiso &>/dev/null; then
+      echo 'mkarchiso not found after installing archiso — aborting' >&2
+      exit 1
+    fi
+    if [ ! -d /usr/share/archiso/configs/releng ]; then
+      echo 'releng profile not found at /usr/share/archiso/configs/releng — aborting' >&2
+      exit 1
+    fi
+  "
   step "Copying releng profile to build directory..." "cp -r /usr/share/archiso/configs/releng/* /tmp/isobuild"
   step "Building ISO..." "mkarchiso -v -w work/ -o ./ /tmp/isobuild"
   
